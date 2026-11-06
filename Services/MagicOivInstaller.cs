@@ -847,11 +847,31 @@ namespace MagicOGK_OIV_Builder.Services
                 "Keys"
             );
 
-            GTA5Keys.LoadEncryptTablesFromPath(keysPath);
+            LoadEncryptTables(keysPath);
 
-            GTA5Hash.Init();
+            GTA5Hash.LUT = GTA5Keys.PC_LUT;
 
             Log?.Invoke("CodeWalker initialized.");
+        }
+
+        // CodeWalker's LoadFromPath only supplies decryption tables, so the
+        // encryption tables and look-up-tables are filled from the bundled Keys
+        // files; EncryptNG() refuses to run while these stay null.
+        private void LoadEncryptTables(string keysPath)
+        {
+            string tablesPath = Path.Combine(keysPath, "gtav_ng_encrypt_tables.dat");
+            string lutsPath = Path.Combine(keysPath, "gtav_ng_encrypt_luts.dat");
+
+            if (!File.Exists(tablesPath) || !File.Exists(lutsPath))
+            {
+                throw new FileNotFoundException(
+                    "CodeWalker encryption tables are missing from " + keysPath,
+                    File.Exists(tablesPath) ? lutsPath : tablesPath
+                );
+            }
+
+            GTA5Keys.PC_NG_ENCRYPT_TABLES = CryptoIO.ReadNgTables(tablesPath);
+            GTA5Keys.PC_NG_ENCRYPT_LUTs = CryptoIO.ReadNgLuts(lutsPath);
         }
 
         private void BackupRpf(string gta5Path, string rpfPath)
